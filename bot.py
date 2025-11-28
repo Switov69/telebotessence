@@ -425,12 +425,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     username = query.from_user.username
     data = query.data
     
-    # Безопасный ответ на callback query с обработкой таймаутов
-    try:
-        await query.answer()
-    except Exception as e:
-        logger.warning(f"Не удалось ответить на callback query: {e}")
-        # Продолжаем выполнение даже если ответ не удался
+    # Убираем query.answer() чтобы избежать таймаутов
     
     if data.startswith('approve_'):
         if not is_admin(user_id):
@@ -781,11 +776,7 @@ async def button_handler_admin(update: Update, context: ContextTypes.DEFAULT_TYP
     
     log_admin_action(user_id, username, "admin_button_click", details=f"button: {data}")
     
-    # Безопасный ответ на callback query
-    try:
-        await query.answer()
-    except Exception as e:
-        logger.warning(f"Не удалось ответить на callback query: {e}")
+    # Убираем query.answer() чтобы избежать таймаутов
     
     if data == "add_user":
         try:
