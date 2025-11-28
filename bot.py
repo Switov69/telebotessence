@@ -188,6 +188,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 media_groups = {}
 
 async def handle_user_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # Проверяем, что update.message существует
+    if not update.message:
+        return
+    
     user_id = update.effective_user.id
     username = update.effective_user.username
     
@@ -215,9 +219,9 @@ async def handle_user_message(update: Update, context: ContextTypes.DEFAULT_TYPE
             pass
     
     # Обработка фото для предложений (только для обычных пользователей)
-    if update.message.photo:
+    if update.message and update.message.photo:
         await handle_photo_message(update, context)
-    elif update.message.text and not update.message.text.startswith('/'):
+    elif update.message and update.message.text and not update.message.text.startswith('/'):
         # Для админов не показываем ошибку, они могут отправлять текст
         if not is_admin(user_id):
             log_user_action(user_id, username, "text_only_rejection", "пользователь отправил только текст")
