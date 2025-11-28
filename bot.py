@@ -421,20 +421,31 @@ async def send_media_group_to_admins(context: ContextTypes.DEFAULT_TYPE, suggest
 # ====== ОБРАБОТКА КНОПОК ======
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
-    await query.answer()
-    
     user_id = query.from_user.id
     username = query.from_user.username
     data = query.data
     
+    # Безопасный ответ на callback query с обработкой таймаутов
+    try:
+        await query.answer()
+    except Exception as e:
+        logger.warning(f"Не удалось ответить на callback query: {e}")
+        # Продолжаем выполнение даже если ответ не удался
+    
     if data.startswith('approve_'):
         if not is_admin(user_id):
-            await query.edit_message_text("❌ Нет прав для модерации")
+            try:
+                await query.edit_message_text("❌ Нет прав для модерации")
+            except Exception as e:
+                logger.warning(f"Не удалось отредактировать сообщение: {e}")
             return
         await approve_suggestion(query, context)
     elif data.startswith('reject_'):
         if not is_admin(user_id):
-            await query.edit_message_text("❌ Нет прав для модерации")
+            try:
+                await query.edit_message_text("❌ Нет прав для модерации")
+            except Exception as e:
+                logger.warning(f"Не удалось отредактировать сообщение: {e}")
             return
         await reject_suggestion(query, context)
 
@@ -459,7 +470,10 @@ async def approve_suggestion(query, context: ContextTypes.DEFAULT_TYPE):
             suggestion_data = (suggestion_data[0], None)
     
     if not suggestion_data:
-        await query.edit_message_text("❌ Предложение не найдено")
+        try:
+            await query.edit_message_text("❌ Предложение не найдено")
+        except Exception as e:
+            logger.warning(f"Не удалось отредактировать сообщение: {e}")
         conn.close()
         return
     
@@ -468,9 +482,15 @@ async def approve_suggestion(query, context: ContextTypes.DEFAULT_TYPE):
     if status != 'pending':
         # Предложение уже модерировано
         if status == 'approved':
-            await query.edit_message_text("✅ Это предложение уже было одобрено другим администратором")
+            try:
+                await query.edit_message_text("✅ Это предложение уже было одобрено другим администратором")
+            except Exception as e:
+                logger.warning(f"Не удалось отредактировать сообщение: {e}")
         elif status == 'rejected':
-            await query.edit_message_text("❌ Это предложение уже было отклонено другим администратором")
+            try:
+                await query.edit_message_text("❌ Это предложение уже было отклонено другим администратором")
+            except Exception as e:
+                logger.warning(f"Не удалось отредактировать сообщение: {e}")
         conn.close()
         return
     
@@ -489,7 +509,10 @@ async def approve_suggestion(query, context: ContextTypes.DEFAULT_TYPE):
     suggestion = cursor.fetchone()
     
     if not suggestion:
-        await query.edit_message_text("❌ Предложение не найдено")
+        try:
+            await query.edit_message_text("❌ Предложение не найдено")
+        except Exception as e:
+            logger.warning(f"Не удалось отредактировать сообщение: {e}")
         conn.close()
         return
     
@@ -506,12 +529,18 @@ async def approve_suggestion(query, context: ContextTypes.DEFAULT_TYPE):
             await context.bot.send_photo(chat_id=CHANNEL_CHAT_ID, photo=file_id, caption=message_text)
         
         log_admin_action(user_id, username, "approved_suggestion", details=f"suggestion_id: {suggestion_id}")
-        await query.edit_message_text("✅ Предложение опубликовано в канале!")
+        try:
+            await query.edit_message_text("✅ Предложение опубликовано в канале!")
+        except Exception as e:
+            logger.warning(f"Не удалось отредактировать сообщение: {e}")
         
     except Exception as e:
         error_msg = f"❌ Ошибка публикации: {str(e)}"
         log_admin_action(user_id, username, "approve_error", details=f"suggestion_id: {suggestion_id}, error: {str(e)}")
-        await query.edit_message_text(error_msg)
+        try:
+            await query.edit_message_text(error_msg)
+        except Exception as edit_error:
+            logger.warning(f"Не удалось отредактировать сообщение: {edit_error}")
     
     conn.close()
 
@@ -536,7 +565,10 @@ async def reject_suggestion(query, context: ContextTypes.DEFAULT_TYPE):
             suggestion_data = (suggestion_data[0], None)
     
     if not suggestion_data:
-        await query.edit_message_text("❌ Предложение не найдено")
+        try:
+            await query.edit_message_text("❌ Предложение не найдено")
+        except Exception as e:
+            logger.warning(f"Не удалось отредактировать сообщение: {e}")
         conn.close()
         return
     
@@ -545,9 +577,15 @@ async def reject_suggestion(query, context: ContextTypes.DEFAULT_TYPE):
     if status != 'pending':
         # Предложение уже модерировано
         if status == 'approved':
-            await query.edit_message_text("✅ Это предложение уже было одобрено другим администратором")
+            try:
+                await query.edit_message_text("✅ Это предложение уже было одобрено другим администратором")
+            except Exception as e:
+                logger.warning(f"Не удалось отредактировать сообщение: {e}")
         elif status == 'rejected':
-            await query.edit_message_text("❌ Это предложение уже было отклонено другим администратором")
+            try:
+                await query.edit_message_text("❌ Это предложение уже было отклонено другим администратором")
+            except Exception as e:
+                logger.warning(f"Не удалось отредактировать сообщение: {e}")
         conn.close()
         return
     
@@ -564,7 +602,10 @@ async def reject_suggestion(query, context: ContextTypes.DEFAULT_TYPE):
     conn.close()
     
     log_admin_action(user_id, username, "rejected_suggestion", details=f"suggestion_id: {suggestion_id}")
-    await query.edit_message_text("❌ Предложение отклонено")
+    try:
+        await query.edit_message_text("❌ Предложение отклонено")
+    except Exception as e:
+        logger.warning(f"Не удалось отредактировать сообщение: {e}")
 
 # ====== СКРЫТАЯ КОМАНДА /APPROVE ДЛЯ ГЛАВНОГО АДМИНА ======
 async def approve_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -725,32 +766,45 @@ async def admins_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def button_handler_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
-    await query.answer()
-    
     user_id = query.from_user.id
     username = query.from_user.username
     
     if not is_main_admin(user_id):
         log_user_action(user_id, username, "tried_admin_buttons", "попытка использовать админ-кнопки")
-        await query.edit_message_text("❌ Только главный администратор может управлять пользователями")
+        try:
+            await query.edit_message_text("❌ Только главный администратор может управлять пользователями")
+        except Exception as e:
+            logger.warning(f"Не удалось отредактировать сообщение: {e}")
         return
     
     data = query.data
     
     log_admin_action(user_id, username, "admin_button_click", details=f"button: {data}")
     
+    # Безопасный ответ на callback query
+    try:
+        await query.answer()
+    except Exception as e:
+        logger.warning(f"Не удалось ответить на callback query: {e}")
+    
     if data == "add_user":
-        await query.edit_message_text(
-            "👤 Введите ID пользователя и роль в формате:\n"
-            "ID РОЛЬ\n\n"
-            "Пример:\n"
-            "123456789 admin - добавить админа\n\n"
-            "Доступные роли:\n"
-            "• admin - Администратор"
-        )
+        try:
+            await query.edit_message_text(
+                "👤 Введите ID пользователя и роль в формате:\n"
+                "ID РОЛЬ\n\n"
+                "Пример:\n"
+                "123456789 admin - добавить админа\n\n"
+                "Доступные роли:\n"
+                "• admin - Администратор"
+            )
+        except Exception as e:
+            logger.warning(f"Не удалось отредактировать сообщение: {e}")
     
     elif data == "remove_user":
-        await query.edit_message_text("🗑️ Отправьте ID пользователя, которого хотите удалить из команды:")
+        try:
+            await query.edit_message_text("🗑️ Отправьте ID пользователя, которого хотите удалить из команды:")
+        except Exception as e:
+            logger.warning(f"Не удалось отредактировать сообщение: {e}")
 
 async def handle_add_user_command(update: Update, context: ContextTypes.DEFAULT_TYPE, target_user_id: int, role: str):
     user_id = update.effective_user.id
